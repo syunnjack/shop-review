@@ -1,0 +1,9 @@
+{
+  "_note": "見る店。shopCode は商品URLの item.rakuten.co.jp/<ここ>/ の部分。",
+  "shops": [
+    {
+      "name": "見本（あとで自分の店に置き換える）",
+      "shopCode": "kinoco"
+    }
+  ]
+}

@@ -1,0 +1,51 @@
+name: Check reviews
+
+# 自店の商品に付いたレビューの増減を毎日見る。
+# **Referer は楽天のアプリで許可済みのドメインにする。**
+# 違うと 403 HTTP_REFERRER_NOT_ALLOWED で全件0になる。
+
+on:
+  schedule:
+    - cron: '0 22 * * *'   # 毎日 07:00 JST
+  workflow_dispatch:
+    inputs:
+      site:
+        description: 'Referer に使うドメイン（許可済みのもの）'
+        type: string
+        default: 'https://chutonavi.jp'
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: レビューの増減を見る
+        env:
+          RAKUTEN_ICHIBA_APP_ID: ${{ secrets.RAKUTEN_ICHIBA_APP_ID }}
+          RAKUTEN_ICHIBA_ACCESS_KEY: ${{ secrets.RAKUTEN_ICHIBA_ACCESS_KEY }}
+          RAKUTEN_AFFILIATE_ID: ${{ secrets.RAKUTEN_AFFILIATE_ID }}
+          SITE_URL: ${{ inputs.site || 'https://chutonavi.jp' }}
+          PYTHONIOENCODING: utf-8
+        run: python scripts/check_reviews.py
+
+      - name: 変化があれば commit する
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/
+          if git diff --cached --quiet; then
+            echo "変化はありませんでした。"
+          else
+            git commit -m "レビューの増減を記録する"
+            git pull --rebase --autostash origin main && git push
+          fi
